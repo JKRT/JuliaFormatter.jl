@@ -563,7 +563,25 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
             fst[i2] = Whitespace(s.indent_size)
             add_indent!(fst[end], s, s.indent_size)
         else
-            fst.indent = s.line_offset
+            # fst.indent = s.line_offset
+            if !at_toplevel(cst)
+            from_binop = parent_is(
+                  cst,
+                x -> x.typ === CSTParser.BinaryOpCall || x.typ === CSTParser.ChainOpCall ,
+                ignore_typs = [
+                    CSTParser.InvisBrackets,
+                    CSTParser.Block,
+                ],
+               )
+                # @info "HERE" cst.parent from_binop
+
+                if !from_binop
+                    fst.indent += s.indent_size
+                    add_indent!(fst[end], s, s.indent_size)
+                end
+                # !from_binop && (fst.indent += s.indent_size)
+                # add_indent!(fst[end], s, s.indent_size)
+            end
         end
 
         # rhs

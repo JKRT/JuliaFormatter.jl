@@ -73,6 +73,8 @@ end
     cst.typ === CSTParser.BinaryOpCall &&
     (cst[2].kind === Tokens.LAZY_OR || cst[2].kind === Tokens.LAZY_AND)
 
+@inline at_toplevel(cst::CSTParser.EXPR) = cst.parent === nothing || cst.parent.typ === CSTParser.FileH
+
 function is_multiline(fst::FST)
     fst.typ === CSTParser.StringH && return true
     if fst.typ === CSTParser.x_Str && fst[2].typ === CSTParser.StringH

@@ -1763,7 +1763,7 @@ end
         end"""
         str_ = raw"""
         if free <
-           min_space
+            min_space
             throw(ErrorException(\"""
             Free space: \$free Gb
             Please make sure to have at least \$min_space Gb of free disk space
@@ -2687,12 +2687,12 @@ end
 
         str = """
         @somemacro function (
-            fcall_ |
+          fcall_ |
             fcall_,
         )
-            body_
+          body_
         end"""
-        @test fmt("@somemacro function (fcall_ | fcall_) body_ end", 4, 19) == str
+        @test fmt("@somemacro function (fcall_ | fcall_) body_ end", 2, 17) == str
 
         str = "Val(x) = (@_pure_meta; Val{x}())"
         @test fmt("Val(x) = (@_pure_meta ; Val{x}())", 4, 80) == str
@@ -2823,9 +2823,9 @@ end
         str = """
         begin
             a &&
-            b
+                b
             a ||
-            b
+                b
         end"""
         @test fmt(str, 4, 1) == str
 
@@ -2833,10 +2833,19 @@ end
         begin
             a &&
             b ||
-            c &&
-            d
+                c &&
+                d
         end"""
         @test fmt("begin\n a && b || c && d\nend", 4, 1) == str
+
+        str = """
+        begin
+            a &&
+                b &&
+                c &&
+                d
+        end"""
+        @test fmt("begin\n a && b && c && d\nend", 4, 1) == str
 
         str = """
         func(
@@ -2973,8 +2982,8 @@ end
             if foo
             elseif baz
             elseif a ||
-                   b &&
-                   c
+                b &&
+                c
             elseif bar
             else
             end
@@ -3593,14 +3602,14 @@ end
         str_ = """
         for a in
             x,
-            b in
+          b in
             y,
-            c in
+          c in
             z
 
-            body
+          body
         end"""
-        @test fmt(str, 4, 1) == str_
+        @test fmt(str, 2, 1) == str_
         @test fmt(str_) == str
 
         str = """
@@ -3679,7 +3688,8 @@ end
                 @test x1 == x2
             end
         end"""
-        str = raw"""@testset begin
+        str = raw"""
+        @testset begin
             @testset "some long title $label1 $label2" for (label1, x1) in [
                     ("label-1-1", medium_sized_expression),
                     ("label-1-2", medium_sized_expression),
@@ -3834,8 +3844,8 @@ some_function(
         str = """
         if ((
           aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ||
-          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ||
-          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+            aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ||
+            aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
         ))
           nothing
         end"""
@@ -3845,8 +3855,8 @@ some_function(
         begin
                 if ((
                         aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ||
-                        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ||
-                        aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                                aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ||
+                                aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
                 ))
                         nothing
                 end
@@ -3883,7 +3893,7 @@ some_function(
             if foo
             elseif baz
             elseif (a || b) &&
-                   c
+                c
             elseif bar
             else
             end
@@ -3926,7 +3936,7 @@ some_function(
                 a ||
                 b
             ) &&
-                   c
+                c
             elseif bar
             else
             end
