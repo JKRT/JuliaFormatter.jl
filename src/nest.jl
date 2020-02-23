@@ -533,6 +533,15 @@ n_conditionalopcall!(style::S, fst::FST, s::State) where {S<:AbstractStyle} =
 
 no_unnest(fst::FST) = fst.typ === CSTParser.BinaryOpCall && contains_comment(fst)
 
+
+function nest_binaryopcall(cst::CSTParser.EXPR)
+    CSTParser.defines_function(cst) && return true 
+    nest_assignment(cst) && return true
+    cst[2].kind === Tokens.PAIR_ARROW && return true
+    cst[2].kind === Tokens.ANON_FUNC && return true
+    return false
+end
+
 # lhs op rhs
 #
 # nest in order of
@@ -554,33 +563,29 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
         fst[i1] = Newline(length = fst[i1].len)
         cst = fst.ref[]
 
-        has_eq = CSTParser.defines_function(cst) || nest_assignment(cst)
-        has_arrow = cst[2].kind === Tokens.PAIR_ARROW || cst[2].kind === Tokens.ANON_FUNC
-        indent_nest = has_eq || has_arrow
+        indent_nest = nest_binaryopcall(cst)
+
+        @info "here" s.line_offset cst[2].kind
 
         if indent_nest
             s.line_offset = fst.indent + s.indent_size
             fst[i2] = Whitespace(s.indent_size)
             add_indent!(fst[end], s, s.indent_size)
         else
-            # fst.indent = s.line_offset
             if !at_toplevel(cst)
             from_binop = parent_is(
                   cst,
-                x -> x.typ === CSTParser.BinaryOpCall || x.typ === CSTParser.ChainOpCall ,
+                  x -> (x.typ === CSTParser.BinaryOpCall && !(nest_binaryopcall(x) && cst[2].kind === Tokens.IN)) || x.typ === CSTParser.ChainOpCall ,
                 ignore_typs = [
                     CSTParser.InvisBrackets,
                     CSTParser.Block,
                 ],
                )
-                # @info "HERE" cst.parent from_binop
 
                 if !from_binop
                     fst.indent += s.indent_size
                     add_indent!(fst[end], s, s.indent_size)
                 end
-                # !from_binop && (fst.indent += s.indent_size)
-                # add_indent!(fst[end], s, s.indent_size)
             end
         end
 
@@ -598,8 +603,10 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
             nest!(style, n, s)
         end
 
+
         # Undo nest if possible
         if !fst.force_nest && !no_unnest(rhs)
+        # if false
             cst = rhs.ref[]
             line_margin = s.line_offset
 
@@ -624,20 +631,15 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
                 line_margin += rw
             end
 
-            # @info "" rhs.typ indent_nest s.line_offset line_margin fst.extra_margin length(fst[end])
             if line_margin + fst.extra_margin <= s.margin
                 fst[i1] = Whitespace(1)
-                if indent_nest
-                    fst[i2] = Whitespace(0)
-                    walk(dedent!, rhs, s)
-                end
+                indent_nest && (fst[i2] = Whitespace(0))
+                walk(dedent!, rhs, s)
             end
         end
 
-        # @info "before reset" line_offset s.line_offset
         s.line_offset = line_offset
         walk(reset_line_offset!, fst, s)
-        # @info "after reset" line_offset s.line_offset
     else
         # Handles the case of a function def defined
         # as "foo(a)::R where {A,B} = body".
