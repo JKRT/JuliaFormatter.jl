@@ -534,13 +534,8 @@ n_conditionalopcall!(style::S, fst::FST, s::State) where {S<:AbstractStyle} =
 no_unnest(fst::FST) = fst.typ === CSTParser.BinaryOpCall && contains_comment(fst)
 
 
-function nest_binaryopcall(cst::CSTParser.EXPR)
-    CSTParser.defines_function(cst) && return true 
-    nest_assignment(cst) && return true
-    cst[2].kind === Tokens.PAIR_ARROW && return true
-    cst[2].kind === Tokens.ANON_FUNC && return true
-    return false
-end
+has_eq(cst::CSTParser.EXPR) = CSTParser.defines_function(cst) || nest_assignment(cst)
+has_arrow(cst::CSTParser.EXPR) = cst[2].kind === Tokens.PAIR_ARROW || cst[2].kind === Tokens.PAIR_ARROW
 
 # lhs op rhs
 #
@@ -563,11 +558,11 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
         fst[i1] = Newline(length = fst[i1].len)
         cst = fst.ref[]
 
-        indent_nest = nest_binaryopcall(cst)
+        indent_nest = has_eq(cst) || has_arrow(cst)
 
-        @info "here" s.line_offset cst[2].kind
+        # @info "here" s.line_offset cst[2].kind
 
-        if indent_nest
+        if has_eq(cst) || has_arrow(cst)
             s.line_offset = fst.indent + s.indent_size
             fst[i2] = Whitespace(s.indent_size)
             add_indent!(fst[end], s, s.indent_size)
@@ -575,7 +570,7 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
             if !at_toplevel(cst)
             from_binop = parent_is(
                   cst,
-                  x -> (x.typ === CSTParser.BinaryOpCall && !(nest_binaryopcall(x) && cst[2].kind === Tokens.IN)) || x.typ === CSTParser.ChainOpCall ,
+                  x -> (x.typ === CSTParser.BinaryOpCall && !((has_eq(x) || has_arrow(x)) && cst[2].kind === Tokens.IN)) || x.typ === CSTParser.ChainOpCall ,
                 ignore_typs = [
                     CSTParser.InvisBrackets,
                     CSTParser.Block,
@@ -583,7 +578,9 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
                )
 
                 if !from_binop
-                    fst.indent += s.indent_size
+                    # fst.indent += s.indent_size
+                    s.line_offset = fst.indent + s.indent_size
+                    fst[i2] = Whitespace(s.indent_size)
                     add_indent!(fst[end], s, s.indent_size)
                 end
             end
@@ -610,13 +607,10 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
             cst = rhs.ref[]
             line_margin = s.line_offset
 
-            if (
-                rhs.typ === CSTParser.BinaryOpCall &&
-                (!(is_lazy_op(cst) && !indent_nest) && cst[2].kind !== Tokens.IN)
-            ) || rhs.typ === CSTParser.UnaryOpCall ||
-               rhs.typ === CSTParser.ChainOpCall || rhs.typ === CSTParser.Comparison
-                line_margin += length(fst[end])
-            elseif rhs.typ === CSTParser.Do && is_iterable(rhs[1])
+            if rhs.typ === CSTParser.Do && is_iterable(rhs[1])
+                rw, _ = length_to(fst, [NEWLINE], start = i2 + 1)
+                line_margin += rw
+            elseif (has_eq(fst.ref[]) || has_arrow(fst.ref[])) && is_iterable(rhs)
                 rw, _ = length_to(fst, [NEWLINE], start = i2 + 1)
                 line_margin += rw
             elseif is_block(cst)
@@ -626,14 +620,24 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
                 else
                     line_margin += sum(length.(rhs[1:idx-1]))
                 end
+            elseif rhs.typ === CSTParser.BinaryOpCall && cst[2].kind !== Tokens.IN
+                line_margin += length(fst[end])
+            elseif rhs.typ === CSTParser.UnaryOpCall
+                line_margin += length(fst[end])
+            elseif rhs.typ === CSTParser.ChainOpCall
+                line_margin += length(fst[end])
+            elseif rhs.typ === CSTParser.Comparison
+                line_margin += length(fst[end])
             else
                 rw, _ = length_to(fst, [NEWLINE], start = i2 + 1)
                 line_margin += rw
             end
 
+            # @info "line info" s.line_offset line_margin fst.extra_margin cst.typ fst.typ
+
             if line_margin + fst.extra_margin <= s.margin
                 fst[i1] = Whitespace(1)
-                indent_nest && (fst[i2] = Whitespace(0))
+                fst[i2] = Whitespace(0)
                 walk(dedent!, rhs, s)
             end
         end
