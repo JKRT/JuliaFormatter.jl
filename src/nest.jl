@@ -535,7 +535,8 @@ no_unnest(fst::FST) = fst.typ === CSTParser.BinaryOpCall && contains_comment(fst
 
 
 has_eq(cst::CSTParser.EXPR) = CSTParser.defines_function(cst) || nest_assignment(cst)
-has_arrow(cst::CSTParser.EXPR) = cst[2].kind === Tokens.PAIR_ARROW || cst[2].kind === Tokens.PAIR_ARROW
+has_arrow(cst::CSTParser.EXPR) =
+    cst[2].kind === Tokens.PAIR_ARROW || cst[2].kind === Tokens.PAIR_ARROW
 
 # lhs op rhs
 #
@@ -562,20 +563,20 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
 
         # @info "here" s.line_offset cst[2].kind
 
-        if has_eq(cst) || has_arrow(cst)
+        if indent_nest
             s.line_offset = fst.indent + s.indent_size
             fst[i2] = Whitespace(s.indent_size)
             add_indent!(fst[end], s, s.indent_size)
         else
             if !at_toplevel(cst)
-            from_binop = parent_is(
-                  cst,
-                  x -> (x.typ === CSTParser.BinaryOpCall && !((has_eq(x) || has_arrow(x)) && cst[2].kind === Tokens.IN)) || x.typ === CSTParser.ChainOpCall ,
-                ignore_typs = [
-                    CSTParser.InvisBrackets,
-                    CSTParser.Block,
-                ],
-               )
+                from_binop = parent_is(
+                    cst,
+                    x -> (
+                        x.typ === CSTParser.BinaryOpCall &&
+                                !((has_eq(x) || has_arrow(x)) && cst[2].kind === Tokens.IN)
+                    ) || x.typ === CSTParser.ChainOpCall,
+                    ignore_typs = [CSTParser.InvisBrackets, CSTParser.Block],
+                )
 
                 if !from_binop
                     # fst.indent += s.indent_size
@@ -603,14 +604,16 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
 
         # Undo nest if possible
         if !fst.force_nest && !no_unnest(rhs)
-        # if false
             cst = rhs.ref[]
             line_margin = s.line_offset
 
-            if rhs.typ === CSTParser.Do && is_iterable(rhs[1])
-                rw, _ = length_to(fst, [NEWLINE], start = i2 + 1)
-                line_margin += rw
-            elseif (has_eq(fst.ref[]) || has_arrow(fst.ref[])) && is_iterable(rhs)
+            if (
+                rhs.typ === CSTParser.BinaryOpCall &&
+                (!(is_lazy_op(cst) && !indent_nest) && cst[2].kind !== Tokens.IN)
+            ) || rhs.typ === CSTParser.UnaryOpCall ||
+                rhs.typ === CSTParser.ChainOpCall || rhs.typ === CSTParser.Comparison
+                line_margin += length(fst[end])
+            elseif rhs.typ === CSTParser.Do && is_iterable(rhs[1])
                 rw, _ = length_to(fst, [NEWLINE], start = i2 + 1)
                 line_margin += rw
             elseif is_block(cst)
@@ -620,14 +623,6 @@ function n_binaryopcall!(ds::DefaultStyle, fst::FST, s::State)
                 else
                     line_margin += sum(length.(rhs[1:idx-1]))
                 end
-            elseif rhs.typ === CSTParser.BinaryOpCall && cst[2].kind !== Tokens.IN
-                line_margin += length(fst[end])
-            elseif rhs.typ === CSTParser.UnaryOpCall
-                line_margin += length(fst[end])
-            elseif rhs.typ === CSTParser.ChainOpCall
-                line_margin += length(fst[end])
-            elseif rhs.typ === CSTParser.Comparison
-                line_margin += length(fst[end])
             else
                 rw, _ = length_to(fst, [NEWLINE], start = i2 + 1)
                 line_margin += rw

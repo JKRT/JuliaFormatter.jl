@@ -68,13 +68,11 @@ function print_tree(
                 n.indent = notcode_indent
             elseif i + 1 < length(nodes) && is_end(nodes[i+2])
                 n.indent += s.indent_size
-            elseif i + 1 < length(nodes) && (
-                nodes[i+2].typ === CSTParser.Block || nodes[i+2].typ === CSTParser.Begin
-            )
+            elseif i + 1 < length(nodes) &&
+                (nodes[i+2].typ === CSTParser.Block || nodes[i+2].typ === CSTParser.Begin)
                 n.indent = nodes[i+2].indent
-            elseif i > 2 && (
-                nodes[i-2].typ === CSTParser.Block || nodes[i-2].typ === CSTParser.Begin
-            )
+            elseif i > 2 &&
+                (nodes[i-2].typ === CSTParser.Block || nodes[i-2].typ === CSTParser.Begin)
                 n.indent = nodes[i-2].indent
             end
         end
@@ -89,7 +87,7 @@ function print_tree(
 
         if n.typ === NEWLINE && s.on && i < length(nodes)
             if is_closer(nodes[i+1]) ||
-               nodes[i+1].typ === CSTParser.Block || nodes[i+1].typ === CSTParser.Begin
+                nodes[i+1].typ === CSTParser.Block || nodes[i+1].typ === CSTParser.Begin
                 write(io, repeat(" ", max(nodes[i+1].indent, 0)))
                 s.line_offset = nodes[i+1].indent
             elseif !skip_indent(nodes[i+1])

@@ -73,7 +73,8 @@ end
     cst.typ === CSTParser.BinaryOpCall &&
     (cst[2].kind === Tokens.LAZY_OR || cst[2].kind === Tokens.LAZY_AND)
 
-@inline at_toplevel(cst::CSTParser.EXPR) = cst.parent === nothing || cst.parent.typ === CSTParser.FileH
+@inline at_toplevel(cst::CSTParser.EXPR) =
+    cst.parent === nothing || cst.parent.typ === CSTParser.FileH
 
 function is_multiline(fst::FST)
     fst.typ === CSTParser.StringH && return true
@@ -108,12 +109,12 @@ end
 # https://github.com/julia-vscode/CSTParser.jl/issues/108
 function get_args(cst::CSTParser.EXPR)
     if cst.typ === CSTParser.MacroCall ||
-       cst.typ === CSTParser.TypedVcat || cst.typ === CSTParser.Ref ||
-       cst.typ === CSTParser.Curly || cst.typ === CSTParser.Call
+        cst.typ === CSTParser.TypedVcat || cst.typ === CSTParser.Ref ||
+        cst.typ === CSTParser.Curly || cst.typ === CSTParser.Call
         return get_args(cst.args[2:end])
     elseif cst.typ === CSTParser.Parameters || cst.typ === CSTParser.Braces ||
-           cst.typ === CSTParser.Vcat || cst.typ === CSTParser.TupleH ||
-           cst.typ === CSTParser.Vect || cst.typ === CSTParser.InvisBrackets
+        cst.typ === CSTParser.Vcat || cst.typ === CSTParser.TupleH ||
+        cst.typ === CSTParser.Vect || cst.typ === CSTParser.InvisBrackets
         return get_args(cst.args)
     end
     CSTParser.get_args(cst)
@@ -163,8 +164,8 @@ function add_node!(t::FST, n::FST, s::State; join_lines = false, max_padding = -
     elseif n.typ === TRAILINGCOMMA
         en = t.nodes[end]
         if en.typ === CSTParser.Generator || en.typ === CSTParser.Filter ||
-           en.typ === CSTParser.Flatten || en.typ === CSTParser.MacroCall ||
-           (is_comma(en) && t.typ === CSTParser.TupleH && n_args(t.ref[]) == 1)
+            en.typ === CSTParser.Flatten || en.typ === CSTParser.MacroCall ||
+            (is_comma(en) && t.typ === CSTParser.TupleH && n_args(t.ref[]) == 1)
             # don't insert trailing comma in these cases
         elseif is_comma(en)
             t.nodes[end] = n
@@ -266,7 +267,7 @@ function add_node!(t::FST, n::FST, s::State; join_lines = false, max_padding = -
             end
             add_node!(t, Newline(force_nest = true), s)
         elseif nt === PLACEHOLDER &&
-               current_line != n.startline && hascomment(s.doc, current_line)
+            current_line != n.startline && hascomment(s.doc, current_line)
             t.force_nest = true
             add_node!(t, InlineComment(current_line), s)
             # swap PLACEHOLDER (will be NEWLINE) with INLINECOMMENT node

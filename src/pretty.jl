@@ -247,7 +247,7 @@ p_punctuation(style::S, cst::CSTParser.EXPR, s::State) where {S<:AbstractStyle} 
     # IDENTIFIER where as CSTParser parses it as a LITERAL.
     # An IDENTIFIER won't show up in the string literal lookup table.
     if str_info === nothing &&
-       (cst.parent.typ === CSTParser.x_Str || cst.parent.typ === CSTParser.x_Cmd)
+        (cst.parent.typ === CSTParser.x_Str || cst.parent.typ === CSTParser.x_Cmd)
         s.offset += cst.fullspan
         return FST(cst, loc[1], loc[1], cst.val)
     end
@@ -359,7 +359,7 @@ function p_macrocall(ds::DefaultStyle, cst::CSTParser.EXPR, s::State)
         add_node!(t, pretty(style, cst[3], s), s, max_padding = 0)
         return t
     elseif length(cst) == 3 &&
-           cst[1].typ === CSTParser.MacroName && cst[1][2].val == "doc" && is_str(cst[2])
+        cst[1].typ === CSTParser.MacroName && cst[1][2].val == "doc" && is_str(cst[2])
         add_node!(t, pretty(style, cst[1], s), s)
         add_node!(t, Whitespace(1), s)
         add_node!(t, pretty(style, cst[2], s), s, join_lines = true)
@@ -1126,7 +1126,7 @@ function p_binaryopcall(
     op = cst[2]
     nonest = nonest || op.kind === Tokens.COLON
     if cst.parent.typ === CSTParser.Curly &&
-       op.kind in (Tokens.ISSUBTYPE, Tokens.ISSUPERTYPE) && !s.opts.whitespace_typedefs
+        op.kind in (Tokens.ISSUBTYPE, Tokens.ISSUPERTYPE) && !s.opts.whitespace_typedefs
         nospace = true
     elseif op.kind === Tokens.COLON
         nospace = true
@@ -1144,7 +1144,7 @@ function p_binaryopcall(
     end
 
     if op.kind === Tokens.COLON &&
-       s.opts.whitespace_ops_in_indices && !is_leaf(cst[1]) && !is_iterable(cst[1])
+        s.opts.whitespace_ops_in_indices && !is_leaf(cst[1]) && !is_iterable(cst[1])
         paren = FST(CSTParser.PUNCTUATION, n.startline, n.startline, "(")
         add_node!(t, paren, s)
         add_node!(t, n, s, join_lines = true)
@@ -1190,7 +1190,7 @@ function p_binaryopcall(
     end
 
     if op.kind === Tokens.COLON &&
-       s.opts.whitespace_ops_in_indices && !is_leaf(cst[3]) && !is_iterable(cst[3])
+        s.opts.whitespace_ops_in_indices && !is_leaf(cst[3]) && !is_iterable(cst[3])
         paren = FST(CSTParser.PUNCTUATION, n.startline, n.startline, "(")
         add_node!(t, paren, s, join_lines = true)
         add_node!(t, n, s, join_lines = true)
